@@ -63,6 +63,17 @@ _TABLE: list[Signature] = [
     # MillionPhones documents its out-of-credits answer as a 402 carrying billing_url; no other
     # answer carries that field.
     Signature("millionphones", 402, r"billing_url", "balance", tripwire=True),
+    # Vertical AI (docs.verticalai.com.au/docs/platform/placed-calls, Limits): a workspace that can't
+    # pay for a call is a 402 problem+json whose `code` says why: spend_cap_reached at its spend
+    # limit, card_required or account_past_due when its card can't be charged,
+    # subscription_canceled, plan_required or trial_used when it has no plan to bill, and
+    # billing_blocked otherwise. A 402 plan_feature_locked is a feature the plan lacks (outbound
+    # calling is on the Scale plan): no account signal.
+    Signature("verticalai", 402, r"plan_feature_locked", "unknown"),
+    Signature("verticalai", 402, r"spend_cap_reached", "balance", tripwire=True),
+    Signature("verticalai", 402, r"card_required|account_past_due", "balance"),
+    Signature("verticalai", 402, r"subscription_canceled|plan_required|trial_used", "balance"),
+    Signature("verticalai", 402, r"billing_blocked", "balance", tripwire=True),
     Signature("leadsforge", 402, r"insufficient_credits", "balance"),
     # MapsData (dashboard API error codes): a scrape submitted with no Scraping Credits left is a 402
     # {"error": {"code": "lead_limit_reached", ...}}; an unpaid renewal pauses submissions with a
